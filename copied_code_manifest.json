@@ -1,0 +1,168 @@
+{
+  "edition": "literal_notebook_copy",
+  "note": "origin paths are documentation only, not runtime dependencies",
+  "definitions": {
+    "normalize_slices": {
+      "origin": "code/prep_resnet50_manual.py",
+      "original_symbol": "normalize_slices",
+      "origin_line": 21,
+      "ast_sha256": "62439e345e6b49ecb1e98b68a29858a0a51d095fa9b2f5184592d882d1e6eb27"
+    },
+    "load_volume": {
+      "origin": "code/prep_resnet50_manual.py",
+      "original_symbol": "load_volume",
+      "origin_line": 29,
+      "ast_sha256": "92bd24925e47ab3ec645739bfa70fedc6edc76f779f7f92fd22d01a80d9fb974"
+    },
+    "parse_max_layer": {
+      "origin": "code/prep_resnet50_manual.py",
+      "original_symbol": "parse_max_layer",
+      "origin_line": 33,
+      "ast_sha256": "b0259dfcc6172632ddf667c915bf634a8089c238f17e3538a96c002a25a3dde7"
+    },
+    "prepare_cache_main": {
+      "origin": "code/prep_resnet50_manual.py",
+      "original_symbol": "main",
+      "origin_line": 43,
+      "ast_sha256": "2f8008205cc07e131e302f492460065ba63a56590c387b9cd37fb8f8035f75fe"
+    },
+    "parse_time": {
+      "origin": "code/prepare_temporal_validation.py",
+      "original_symbol": "parse_time",
+      "origin_line": 16,
+      "ast_sha256": "fbe982fd020f764ef606e3d78c5e0ca89934a42eccaffc51ed3a1ec171b45fd1"
+    },
+    "format_median_iqr": {
+      "origin": "code/prepare_temporal_validation.py",
+      "original_symbol": "format_median_iqr",
+      "origin_line": 20,
+      "ast_sha256": "278cedd5c9ae06d1211bbafedb6dc29c99a2cdb3653c7a35a5693335bdc2e0d4"
+    },
+    "smd_continuous": {
+      "origin": "code/prepare_temporal_validation.py",
+      "original_symbol": "smd_continuous",
+      "origin_line": 24,
+      "ast_sha256": "4049ad94b30a3f5d080013dc7957a27da2e51ac5dc07e93293dce4aba9a7c568"
+    },
+    "smd_binary": {
+      "origin": "code/prepare_temporal_validation.py",
+      "original_symbol": "smd_binary",
+      "origin_line": 31,
+      "ast_sha256": "03e3b71fbf78b373a85387f0a0980d038687e4351d40c54b7aa1bdfa70a49f72"
+    },
+    "prepare_temporal_main": {
+      "origin": "code/prepare_temporal_validation.py",
+      "original_symbol": "main",
+      "origin_line": 40,
+      "ast_sha256": "c00e4fd35306c6888d90b7e61002f808e8e3110e9075e14bc0f60be7f57eea5b"
+    },
+    "seed_everything": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "seed_everything",
+      "origin_line": 28,
+      "ast_sha256": "2f16b64e559c5d1efa0def1b98e9123cfdebaaccc483dfd396ab65d88b745761"
+    },
+    "MaskEncoder": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "MaskEncoder",
+      "origin_line": 36,
+      "ast_sha256": "b0a35f2673a19f24a5f492a757a65894b572a9819996d2aabb9572cc89b2de04"
+    },
+    "DualBranchModel": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "DualBranchModel",
+      "origin_line": 60,
+      "ast_sha256": "75a158f454de456d8b6e452309c35eb101124771da83567a475d8af2e386bc95"
+    },
+    "augment_batch": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "augment_batch",
+      "origin_line": 96,
+      "ast_sha256": "fff7579e369d643e92dbf59bed563b7b2b94344c48ce36598044feb088a19ae2"
+    },
+    "predict_proba": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "predict_proba",
+      "origin_line": 133,
+      "ast_sha256": "94646b415f42d60d4a16416a05f26afed9656dd0fba15b09323c50f226898663"
+    },
+    "train_full_fold": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "train_fold",
+      "origin_line": 149,
+      "ast_sha256": "6e55c14b10d9e8c938ce3d141b06393142d46f813b48c5d79a394b45ebe54c86"
+    },
+    "train_full_cv_main": {
+      "origin": "code/train_resnet50_manual_cv.py",
+      "original_symbol": "main",
+      "origin_line": 220,
+      "ast_sha256": "d180816405397d36299cf6e31aec1dc73ad499f872612ca0104520049fbc8bfa"
+    },
+    "make_optimizer": {
+      "origin": "code/train_resnet50_temporal_development.py",
+      "original_symbol": "make_optimizer",
+      "origin_line": 32,
+      "ast_sha256": "f36a1e6e87e23c160bca103ba98ea79aac68811c9a60324b91892a8413ae3730"
+    },
+    "make_criterion": {
+      "origin": "code/train_resnet50_temporal_development.py",
+      "original_symbol": "make_criterion",
+      "origin_line": 47,
+      "ast_sha256": "86e189018025dbbc4d0376bf5ec452ccb415b76507a5c4733d985901fd513528"
+    },
+    "train_development_fold": {
+      "origin": "code/train_resnet50_temporal_development.py",
+      "original_symbol": "train_fold",
+      "origin_line": 55,
+      "ast_sha256": "2377d6520b2cf3c6c902dc9c14f5fedeb9a0d3d5d14e6b0e50e62ac6170faa58"
+    },
+    "train_final": {
+      "origin": "code/train_resnet50_temporal_development.py",
+      "original_symbol": "train_final",
+      "origin_line": 110,
+      "ast_sha256": "354b107bc3ec2c7df56c089b36c9e36c7569349952409edb1cb02154836349ca"
+    },
+    "train_development_main": {
+      "origin": "code/train_resnet50_temporal_development.py",
+      "original_symbol": "main",
+      "origin_line": 148,
+      "ast_sha256": "935837b00dc0295c524d8808fc1ad1f7eb0373d9baec9e5e739e5818872e6fdc"
+    },
+    "make_pipe": {
+      "origin": "code/fusion_resnet50_manual_clinical5.py",
+      "original_symbol": "make_pipe",
+      "origin_line": 24,
+      "ast_sha256": "d8b66cbb401c9fc49f3e9738049c9141ab1b8b0f05b0979fde0db38c18f8f45b"
+    },
+    "fit_fold_with_inner_cv": {
+      "origin": "code/fusion_resnet50_manual_clinical5.py",
+      "original_symbol": "fit_fold_with_inner_cv",
+      "origin_line": 34,
+      "ast_sha256": "0ff403ebb0c4ea7948dbf867f98e013b0e238cdea2746ecc6448732ca6dc34c2"
+    },
+    "evaluate": {
+      "origin": "code/fusion_resnet50_manual_clinical5.py",
+      "original_symbol": "evaluate",
+      "origin_line": 52,
+      "ast_sha256": "1cda4f904101d41810508387be5da9158b598b034785c86d2d57ccf900027896"
+    },
+    "direct_evaluate": {
+      "origin": "code/fusion_resnet50_manual_clinical5.py",
+      "original_symbol": "direct_evaluate",
+      "origin_line": 87,
+      "ast_sha256": "a3a7cc160271d60a0c3af8836052a8650c6dd56b4ecde9a3d5d8bec7e8b1fa13"
+    },
+    "SingleSequenceDualBranchModel": {
+      "origin": "code/train_resnet50_single_sequence_manual_cv.py",
+      "original_symbol": "SingleSequenceDualBranchModel",
+      "origin_line": 32,
+      "ast_sha256": "47e8e1c3ab1ff8d6737b708e6431a0a1ebc34b4e51d3f9fef1ebea18d526e4c4"
+    },
+    "train_single_sequence_fold": {
+      "origin": "code/train_resnet50_single_sequence_manual_cv.py",
+      "original_symbol": "train_fold",
+      "origin_line": 80,
+      "ast_sha256": "ff539ddd00b78ac5bf80300a32a8d1c09d8f0bd43c9b8b3ccdd13cbe7b4e0fc0"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "run_id": "resnet_baseline_001",
+  "excel_path": "moca.xlsx",
+  "patients_root": "./data",
+  "existing_cache": null,
+  "outputs_root": "outputs",
+  "sheet_name": "Sheet1",
+  "columns": {
+    "mr": "影像号",
+    "moca": "MOCA",
+    "max_layer": "脑室体素最大层",
+    "check_time": "检查时间",
+    "age": "年龄",
+    "education": "受教育年限",
+    "nihss": "NIHSS",
+    "hcy": "同型半胱氨酸μmol/L",
+    "ua": "尿酸μmol/L",
+    "sex": "性别",
+    "fazekas": "Fazekas"
+  },
+  "expected_patients": 206,
+  "expected_boundary": "2026-06-10",
+  "annotation_scope": "unconfirmed",
+  "data_access": "native_images",
+  "preprocessing": {
+    "mode": "full",
+    "sample_mrs": ["MR251203027"],
+    "expected_orientation": "RAS",
+    "audit_dicom_geometry": true,
+    "annotation_scope_by_mr": {"MR251203027": "selected_slices"}
+  },
+  "label_names": {"1": null, "2": null, "3": null},
+  "radiomics": {
+    "settings": {"normalize": true, "normalizeScale": 100, "binWidth": 25},
+    "feature_classes": ["shape", "firstorder", "glcm", "glrlm", "glszm", "gldm", "ngtdm"],
+    "percentiles": [5, 10, 20]
+  },
+  "segmentation": {"dataset_id": 117, "configuration": "2d", "device": "cuda"}
+}
