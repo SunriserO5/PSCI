@@ -1,7 +1,7 @@
 {
   "run_id": "resnet_baseline_001",
   "excel_path": "moca.xlsx",
-  "patients_root": "./data",
+  "patients_root": "G:\\psci_data",
   "existing_cache": null,
   "outputs_root": "outputs",
   "sheet_name": "Sheet1",
