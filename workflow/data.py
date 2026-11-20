@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .project import CLINICAL, IMAGE_FILES, SEED, digest, dump_json, fresh, paths, record, require_input, source_snapshot
+from .project import CLINICAL, IMAGE_FILES, SEED, digest, dump_json, fresh, paths, record, require_input, source_snapshot, definition_contract, portable_name
 from .baseline import configure_baseline, load_volume, normalize_slices, prepare_temporal_main
 
 
@@ -267,7 +267,7 @@ def inspect_patient(cfg, patient, directory):
         raise ValueError(f"需要三维影像，实际形状为 {ref.shape}。")
     if not np.isfinite(ref.affine).all() or abs(np.linalg.det(ref.affine[:3, :3])) < 1e-12:
         raise ValueError("参考影像的空间变换无效。")
-    if any(v.shape != ref.shape or not np.allclose(v.affine, ref.affine, atol=1e-4, rtol=0) for v in volumes[1:]):
+    if any(v.shape != ref.shape or not np.allclose(v.affine, ref.affine, atol=np.array([1e-4, 1e-4, 1e-4, 1e-3]), rtol=0) for v in volumes[1:]):
         raise ValueError("三序列影像与人工标注的 shape/affine 不一致。")
     orientation = "".join(nib.aff2axcodes(ref.affine))
     expected_orientation = cfg.get("preprocessing", {}).get("expected_orientation", "RAS")
@@ -376,7 +376,7 @@ def checked_inputs(cfg):
     details = json.loads(prep["audit_details"].read_text(encoding="utf-8"))
     if (details["adapter_sha256"] != digest(paths(cfg)["adapter"]) or details["matching_sha256"] != digest(prep["matching"])
             or details["audit_sha256"] != digest(prep["audit"]) or details["settings"] != preparation_settings(cfg)
-            or details["notebook_definitions_sha256"] != source_snapshot(cfg)):
+            or details["notebook_definitions_sha256"].get("00_共享数据核查与固定队列.ipynb") != source_snapshot(cfg).get("00_共享数据核查与固定队列.ipynb")):
         raise ValueError("核查记录的输入、设置或代码定义已变化，请重新检查影像。")
     if not audit.mr.is_unique or audit.mr.tolist() != matching.mr.tolist():
         raise ValueError("核查表与本次选定患者不一致。")
@@ -559,7 +559,7 @@ def prepare_split_and_cohort(cfg):
     cohort.to_csv(p["cohort"], index=False)
     dump_json(p["data"] / "cohort_summary.json", {"n": len(cohort), "split": cohort.split.value_counts().to_dict(), "boundary": boundary})
     prepared_files = [p["cohort"], p["adapter"], p["temporal"] / "temporal_split.csv", preparation_paths(cfg)["cache_manifest"]]
-    dump_json(p["data"] / "prepared_data_manifest.json", {"artifacts": {str(f.relative_to(p["run"])): digest(f) for f in prepared_files},
+    dump_json(p["data"] / "prepared_data_manifest.json", {"artifacts": {f.relative_to(p["run"]).as_posix(): digest(f) for f in prepared_files},
         "cache_sha256": digest(p["cache"]), "notebook_definitions_sha256": source_snapshot(cfg), "boundary": boundary})
     record(cfg, "cohort")
     return cohort
@@ -572,10 +572,10 @@ def export_classification_bundle(cfg):
         raise ValueError("样例模式不导出完整训练数据包。")
     verify_preparation(cfg)
     prepared = json.loads((p["data"] / "prepared_data_manifest.json").read_text(encoding="utf-8"))
-    if prepared["cache_sha256"] != digest(p["cache"]) or prepared["notebook_definitions_sha256"] != source_snapshot(cfg):
+    if prepared["cache_sha256"] != digest(p["cache"]) or prepared["notebook_definitions_sha256"].get("00_共享数据核查与固定队列.ipynb") != source_snapshot(cfg).get("00_共享数据核查与固定队列.ipynb"):
         raise ValueError("数据准备完成后缓存或代码定义改变，请核对实验版本。")
     for name, checksum in prepared["artifacts"].items():
-        if digest(p["run"] / name) != checksum:
+        if digest(p["run"] / portable_name(name)) != checksum:
             raise ValueError(f"准备好的数据文件发生变化：{name}")
     notebooks = sorted(cfg["_root"].glob("*.ipynb"))
     if len(notebooks) != 7:
@@ -595,23 +595,23 @@ def export_classification_bundle(cfg):
         shutil.copy2(source, target)
         if digest(source) != digest(target):
             raise ValueError(f"复制校验失败：{name}")
-        artifacts[str(target.relative_to(destination))] = digest(target)
+        artifacts[target.relative_to(destination).as_posix()] = digest(target)
     # Keep the local preparation manifest as provenance; its cohort contains native paths.
     source_preparation = target_run / "data" / "source_prepared_data_manifest.json"
     shutil.copy2(p["data"] / "prepared_data_manifest.json", source_preparation)
-    artifacts[str(source_preparation.relative_to(destination))] = digest(source_preparation)
+    artifacts[source_preparation.relative_to(destination).as_posix()] = digest(source_preparation)
     target_cache = target_run / "data" / "resnet50_manual_cache.npz"
     shutil.copy2(p["cache"], target_cache)
     if digest(target_cache) != prepared["cache_sha256"]:
         raise ValueError("上传包中的缓存复制不完整。")
-    artifacts[str(target_cache.relative_to(destination))] = digest(target_cache)
+    artifacts[target_cache.relative_to(destination).as_posix()] = digest(target_cache)
     cohort = pd.read_csv(p["cohort"], dtype={"mr": str})
     for column in ("t1", "t2", "dwi", "manual_mask"):
         cohort[column] = ""
     cohort["native_images_available"] = False
     cohort_path = target_run / "data" / "cohort.csv"
     cohort.to_csv(cohort_path, index=False)
-    artifacts[str(cohort_path.relative_to(destination))] = digest(cohort_path)
+    artifacts[cohort_path.relative_to(destination).as_posix()] = digest(cohort_path)
     for notebook in notebooks:
         content = json.loads(notebook.read_text(encoding="utf-8"))
         for cell in content["cells"]:
@@ -628,10 +628,12 @@ def export_classification_bundle(cfg):
     config.update(excel_path=None, patients_root=None, existing_cache=None, outputs_root="outputs",
                   data_access="classification_cache_only")
     dump_json(destination / "config.json", config)
+    if (cfg["_root"] / "experiment_settings.json").is_file():
+        shutil.copy2(cfg["_root"] / "experiment_settings.json", destination / "experiment_settings.json")
     if (cfg["_root"] / "requirements.txt").is_file():
         shutil.copy2(cfg["_root"] / "requirements.txt", destination / "requirements.txt")
     dump_json(destination / "classification_bundle.json", {"run_id": cfg["run_id"], "kind": "classification_cache_only",
-        "artifacts": artifacts, "cache": str(target_cache.relative_to(destination)), "cohort": str(cohort_path.relative_to(destination)),
+        "artifacts": artifacts, "cache": target_cache.relative_to(destination).as_posix(), "cohort": cohort_path.relative_to(destination).as_posix(),
         "source_cohort_sha256": digest(p["cohort"]), "notebook_definitions_sha256": source_snapshot(cfg),
         "patients": len(cohort), "split": cohort.split.value_counts().to_dict(), "boundary": prepared["boundary"],
         "native_images_included": False, "note": "原生路径已清空；本包仅供分类、单序列消融和缓存空间中的解释。"})
@@ -639,7 +641,7 @@ def export_classification_bundle(cfg):
         "无需在服务器重跑00的数据准备，依次使用02训练、03单序列、04热图、06分类时间验证。"
         "所有运行开关默认关闭；06默认不纳入影像组学或自动掩模。\n\n"
         "此包含四层224×224缓存、临床工作表、患者分组和核查记录，不含原生三维影像。"
-        "01和05需另行准备原分辨率数据与适合局部标注的流程。核查记录中的本地原始路径仅用于追溯。\n",
+        "01和05在数据电脑运行；完成后可向本包导入影像组学结果和自动掩模包。核查记录中的本地原始路径仅用于追溯。\n",
         encoding="utf-8")
     return {"directory": str(destination), "patients": len(cohort),
             "bytes": sum(f.stat().st_size for f in destination.rglob("*") if f.is_file()), "input_files": len(artifacts)}

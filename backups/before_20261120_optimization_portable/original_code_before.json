@@ -1,0 +1,13 @@
+{
+  "code/prepare_temporal_validation.py": "398b95979768416f431cdab120d2053cd756d64822532f7ff5a026f159c94475",
+  "code/compare_resnet50_densenet121.py": "6d6be69f3f96ec5cd6a083907ffa72287e99cee8cf6c6ad95bef29db63544c86",
+  "code/fusion_densenet121_manual_clinical5.py": "a6114317ed6f1f331c74cad787549d4748e438a1a6a16172e91249e9fd188a8f",
+  "code/fusion_resnet50_manual_clinical5.py": "9256f066ee166aa2c983d8b8eb8fbec8896937781d578444c6c69fa3d2afae8f",
+  "code/prep_resnet50_manual.py": "68e668ac2ba47ee6f203055b276bc017b8438dbefb798b1f13a4edf1f2e5dea1",
+  "code/clinical5_model.py": "daf4c772441149a4015a2b2568b8e51912021aaddb263bc23d9ed4f4c596e0a5",
+  "code/evaluate_resnet50_temporal_validation.py": "75af513170d589ab7c87f2209bcf78672a1b12c9d2aaa000ff3a83d792fc02c2",
+  "code/train_densenet121_manual_cv.py": "ceaec66eb5d3f62ceb80f424b6483992e5f4967ff2b9f46404d8536d65fbf40b",
+  "code/train_resnet50_temporal_development.py": "a231889feb2e475b2b06451a9038a1459c9922886cc38241a612d96b3b53f698",
+  "code/train_resnet50_single_sequence_manual_cv.py": "463f8dcaf58495dff8a9664880b1f9d58fcd13955b87c6d92e7cf44a28693c05",
+  "code/train_resnet50_manual_cv.py": "926edd92c1f8dc249c4bcec0a080517ebe7875096f3d849f7904a7d59a4f63f6"
+}

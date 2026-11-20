@@ -8,17 +8,20 @@ import pandas as pd
 from .original import configure, load_original_model
 from .project import development, dump_json, fresh, paths
 from .baseline import DEVICE
+from .optimized import load_optimized_model
 
 
-def choose_development_cases(cfg):
+def choose_development_cases(cfg, model_kind="baseline"):
     p, dev = paths(cfg), development(cfg)
-    oof = pd.read_csv(p["temporal"] / "development_oof.csv", dtype={"mr": str})
+    folder = p["optimized"] if model_kind == "optimized" else p["temporal"]
+    oof = pd.read_csv(folder / "development_oof.csv", dtype={"mr": str}).rename(columns={"probability": "dev_oof_prob"})
     table = dev.merge(oof[["mr", "dev_oof_prob"]], on="mr", validate="one_to_one")
-    threshold = json.loads((p["temporal"] / "development_cv_metrics.json").read_text(encoding="utf-8"))["youden_threshold"]
+    filename, key = ("development_metrics.json", "threshold") if model_kind == "optimized" else ("development_cv_metrics.json", "youden_threshold")
+    threshold = json.loads((folder / filename).read_text(encoding="utf-8"))[key]
     predicted = table.dev_oof_prob >= threshold
     table["category"] = np.select([(table.label == 1) & predicted, (table.label == 0) & ~predicted,
                                   (table.label == 0) & predicted], ["TP", "TN", "FP"], default="FN")
-    # Fixed MR ordering, not manual selection of visually attractive maps.
+    # Fixed MR ordering for reproducible example selection.
     return table.sort_values("mr").groupby("category", sort=True).head(1)
 
 
@@ -60,16 +63,20 @@ def grad_cam(model, images, masks, target_class=1):
         model.zero_grad(set_to_none=True)
 
 
-def explain_development_cases(cfg, selected_mrs=None):
+def explain_development_cases(cfg, selected_mrs=None, model_kind="baseline"):
     import matplotlib.pyplot as plt
     import torch
     p, dev = paths(cfg), development(cfg)
+    if model_kind not in ("baseline", "optimized"):
+        raise ValueError("model_kind只能是baseline或optimized。")
+    if model_kind == "optimized":
+        p["explain"] = p["optimized"] / "explain"
     if selected_mrs:
         if not set(selected_mrs) <= set(dev.mr):
             raise ValueError("本入口只解释开发队列的折外患者。")
         selected = dev.loc[dev.mr.isin(selected_mrs)]
     else:
-        selected = choose_development_cases(cfg)
+        selected = choose_development_cases(cfg, model_kind)
     fresh(p["explain"] / "cases.csv")
     p["explain"].mkdir(parents=True, exist_ok=True)
     configure(cfg)
@@ -78,7 +85,11 @@ def explain_development_cases(cfg, selected_mrs=None):
         for _, patient in selected.iterrows():
             fold = int(patient.development_fold)
             checkpoint = p["temporal"] / f"dev_fold_{fold}.pt"
-            model = load_original_model(cfg, checkpoint)
+            if model_kind == "optimized":
+                checkpoint = p["optimized"] / f"fold_{fold}.pt"
+                model = load_optimized_model(cfg, checkpoint)
+            else:
+                model = load_original_model(cfg, checkpoint)
             idx = int(patient.cache_index)
             images = cache["images"][idx].astype(np.float32)
             masks = cache["masks"][idx].astype(np.uint8)
@@ -109,5 +120,5 @@ def explain_development_cases(cfg, selected_mrs=None):
     table.to_csv(p["explain"] / "cases.csv", index=False)
     dump_json(p["explain"] / "method.json", {"target": "patient_positive_logit", "layer": "image_features[7]",
         "case_selection": "development fold model; first MR per TP/TN/FP/FN unless explicit list",
-        "limitation": "原折验证标签用于早停；热图和切片权重不是分割结果或因果证明。"})
+        "model_kind": model_kind, "limitation": "原基线曾用外折早停；优化版在内层选轮数。热图和切片权重不是分割结果或因果证明。"})
     return table

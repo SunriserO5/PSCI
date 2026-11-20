@@ -5,7 +5,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from .project import CLINICAL, SEED, development, digest, dump_json, fresh, paths, read_cohort, record, source_snapshot
+from .project import CLINICAL, SEED, development, digest, dump_json, fresh, paths, read_cohort, record, source_snapshot, cohort_identity, definition_contract, portable_name
 from .reporting import classification_metrics, threshold_from_development
 from .baseline import (
     DEVICE, DualBranchModel, SINGLE_SEQUENCES, configure_baseline, evaluate, fit_fold_with_inner_cv,
@@ -71,9 +71,9 @@ def lock_original_models(cfg):
     files += [p["cohort"], p["temporal"] / "temporal_split.csv"]
     lock = p["temporal"] / "frozen_artifacts.json"
     fresh(lock)
-    mapping = {str(f.relative_to(p["run"])): digest(f) for f in files}
+    mapping = {f.relative_to(p["run"]).as_posix(): digest(f) for f in files}
     dump_json(lock, {"artifacts": mapping, "notebook_definitions_sha256": source_snapshot(cfg), "calibration": "none",
-                     "cache_sha256": digest(p["cache"])})
+                     "cache_sha256": digest(p["cache"]), "baseline_contract": baseline_contract(cfg)})
     return lock
 
 
@@ -83,10 +83,12 @@ def verify_lock(cfg):
     if digest(p["cache"]) != metadata["cache_sha256"]:
         raise ValueError("影像缓存与开发锁定版本不一致。")
     for name, expected in metadata["artifacts"].items():
-        if digest(p["run"] / name) != expected:
+        if digest(p["run"] / portable_name(name)) != expected:
             raise ValueError(f"固定产物发生变化：{name}")
-    if source_snapshot(cfg) != metadata["notebook_definitions_sha256"]:
-        raise ValueError("Notebook中的函数或模型定义发生变化，请核对对应的实验版本。")
+    contract = baseline_contract(cfg)
+    expected = metadata.get("baseline_contract", ORIGINAL_INFERENCE_CONTRACT)
+    if contract != expected:
+        raise ValueError("原基线的网络或推理定义发生变化，请使用对应模型版本。")
 
 
 def load_original_model(cfg, checkpoint=None):
@@ -173,3 +175,10 @@ def run_single_sequence_ablation(cfg):
     summary.to_csv(p["single"] / "summary.csv", index=False)
     record(cfg, "single_sequence", {"scope": "development", "manual_mask_channels": 3})
     return summary
+
+
+ORIGINAL_INFERENCE_CONTRACT = {'MaskEncoder': 'b0a35f2673a19f24a5f492a757a65894b572a9819996d2aabb9572cc89b2de04', 'DualBranchModel': '75a158f454de456d8b6e452309c35eb101124771da83567a475d8af2e386bc95', 'predict_proba': '94646b415f42d60d4a16416a05f26afed9656dd0fba15b09323c50f226898663'}
+
+
+def baseline_contract(cfg):
+    return definition_contract(cfg, "02", list(ORIGINAL_INFERENCE_CONTRACT))

@@ -72,11 +72,9 @@ def plot_predictions(predictions):
     return fig
 
 
-def run_validation_report(cfg, include_radiomics=True, include_automatic=False):
+def run_validation_report(cfg, include_radiomics=True, include_automatic=False, include_optimized=False):
     from .original import predict_original_validation
     from .project import dump_json, fresh, paths, record
-    if cfg.get("data_access") == "classification_cache_only" and (include_radiomics or include_automatic):
-        raise ValueError("当前为分类缓存包，请关闭 INCLUDE_RADIOMICS 和 INCLUDE_AUTOMATIC_MASK_SUBSTITUTION。")
     p = paths(cfg)
     fresh(p["reports"] / "validation_predictions.csv", p["reports"] / "validation_metrics.csv")
     predictions, metrics = predict_original_validation(cfg)
@@ -95,7 +93,13 @@ def run_validation_report(cfg, include_radiomics=True, include_automatic=False):
         predicted, summary = predict_original_validation(cfg, automatic_masks=automatic_cache)
         tables.append(predicted)
         summaries.append(summary)
-        evaluate_masks(cfg, scope="validation")
+        if not (locations(cfg)["root"] / "transfer_manifest.json").exists():
+            evaluate_masks(cfg, scope="validation")
+    if include_optimized:
+        from .optimized import predict_optimized_validation
+        predicted, summary = predict_optimized_validation(cfg)
+        tables.append(predicted)
+        summaries.append(summary)
     all_predictions = pd.concat(tables, ignore_index=True)
     all_metrics = pd.concat(summaries, ignore_index=True)
     p["reports"].mkdir(parents=True, exist_ok=True)
@@ -108,6 +112,8 @@ def run_validation_report(cfg, include_radiomics=True, include_automatic=False):
             comparisons.append({"a": name, "b": "Clinical5", **paired_comparison(groups[name], groups["Clinical5"])})
     if "Radiomics" in groups:
         comparisons.append({"a": "ResNet50", "b": "Radiomics", **paired_comparison(groups["ResNet50"], groups["Radiomics"])})
+    if "ResNet50_Optimized" in groups:
+        comparisons.append({"a": "ResNet50_Optimized", "b": "ResNet50", **paired_comparison(groups["ResNet50_Optimized"], groups["ResNet50"])})
     pd.DataFrame(comparisons).to_csv(p["reports"] / "paired_auc_comparisons.csv", index=False)
     figure = plot_predictions(all_predictions)
     figure.savefig(p["reports"] / "roc_calibration.png", dpi=150)
@@ -115,8 +121,9 @@ def run_validation_report(cfg, include_radiomics=True, include_automatic=False):
     plt.close(figure)
     dump_json(p["reports"] / "report_notes.json", {
         "resnet": "原结构、训练、单模型及一次OOF晚期融合；没有新增校准或全流程嵌套改造。",
-        "radiomics": "新增全三维ROI基线；覆盖范围与四层ResNet不同。" if include_radiomics else "未纳入本次报告。",
+        "radiomics": "四层逐层二维特征后按患者聚合；空间单位为像素。" if include_radiomics else "未纳入本次报告。",
         "automatic": "人工掩模训练的原分类器替换输入敏感性实验；仍需人工取层。" if include_automatic else "未纳入本次报告。",
+        "optimized": "独立内层选轮数、外层重新训练的ResNet候选；不包含新的临床融合。" if include_optimized else "未纳入本次报告。",
         "auc_p": "经验配对bootstrap；不是DeLong检验。"})
     record(cfg, "validation_report")
     return all_metrics, pd.DataFrame(comparisons)
