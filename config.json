@@ -1,6 +1,6 @@
 {
   "excel_path": "moca.xlsx",
-  "patients_root": "G:\\psci_data",
+  "patients_root": "E:\\pcsi_data",
   "sheet_name": "Sheet1",
   "cache_path": "outputs/resnet_baseline_001/data/resnet50_manual_cache.npz",
   "cohort_path": "outputs/resnet_baseline_001/data/cohort.csv",
