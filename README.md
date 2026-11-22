@@ -49,6 +49,6 @@ results/
 
 当前网络的权重格式与旧版不同，不能直接把旧 PT 文件改名使用。旧实验的测试预测可以作为 CSV 加入 06；需要哪些列，06 里有说明。新网络和新的 U-Net 需要各自训练。
 
-共同依赖：numpy、pandas、scipy、scikit-learn、matplotlib、joblib、Jupyter。00/01/05 读取原影像需要 nibabel；00 读取 Excel 需要 openpyxl。01 提取特征需要 SimpleITK、pyradiomics。02～06 的神经网络部分需要配套的 PyTorch/torchvision。使用当前代码的 AMP 接口需要 PyTorch 2.3 或更新版本；scikit-learn 需支持 `keep_empty_features`（1.2 或更新），pandas 需支持混合日期解析（2.0 或更新）。异地读取 joblib 模型时，两端 scikit-learn 版本尽量一致。
+共同依赖：numpy、pandas、scipy、scikit-learn、matplotlib、joblib、Jupyter。00/01/05 读取原影像需要 nibabel；00 读取 Excel 需要 openpyxl。01 提取特征使用 MIRP 2.5.0（支持 Python 3.12）及其依赖 scikit-image；在 Notebook 中执行 `%pip install "mirp==2.5.0"` 后重启内核。强度和纹理由 MIRP 计算，二维形状由 scikit-image 计算；换库后需重新提取特征并训练01，06的文件路径保持不变。02～06 的神经网络部分需要配套的 PyTorch/torchvision。使用当前代码的 AMP 接口需要 PyTorch 2.3 或更新版本；scikit-learn 需支持 `keep_empty_features`（1.2 或更新），pandas 需支持混合日期解析（2.0 或更新）。异地读取 joblib 模型时，两端 scikit-learn 版本尽量一致。
 
 本次在本机仅检查源码和 Notebook 结构，没有安装依赖或执行数据处理、训练、测试集评估。
