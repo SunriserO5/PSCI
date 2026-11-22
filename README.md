@@ -1,12 +1,13 @@
 # PSCI 实验 Notebook
 
-日常使用 7 本 Notebook 和一个 `config.json`。代码都在 Notebook 内，不需要项目 Python 脚本。训练参数写在各本前面的参数单元里；模型和结果直接保存为 PT、joblib、NPZ 和 CSV。
+日常使用 00～06，另有021原网络对照，共8本 Notebook 和一个 `config.json`。代码都在 Notebook 内，不需要项目 Python 脚本。训练参数写在各本前面的参数单元里；模型和结果直接保存为 PT、joblib、NPZ 和 CSV。
 
 | Notebook | 作用 | 建议运行位置 |
 | --- | --- | --- |
 | 00 数据准备 | Excel 匹配、影像检查、四层缓存与患者分组 | 完整数据电脑 |
 | 01 影像组学 | 二维特征提取、影像组学及临床融合对照 | 完整数据电脑，CPU 即可 |
 | 02 ResNet 分类 | 当前 ResNet50、临床对照、临床融合 | 算力机 |
+| 021 原 ResNet 对照 | 原网络结构、全主干训练、原网络临床融合 | 算力机 |
 | 03 消融实验 | 三种单序列、去病灶、去注意力 | 算力机 |
 | 04 可解释性 | 折外病例的 Grad-CAM 与四层权重 | 算力机 |
 | 05 自动勾画 | 二维 U-Net、四层 Dice、自动 mask | 完整数据电脑，NVIDIA GPU |
@@ -19,11 +20,15 @@
 3. 打开相应 Notebook，从上往下执行。需要训练时开启对应的运行开关；新文件默认关闭耗时任务。
 4. 02 和 03 使用相同参数、固定患者折。完成后在 06 设置结果目录并开启 `RUN_TEST`。
 
+
+021用于复查原网络的效果：把 `021_原ResNet对照.ipynb` 放到与02相同的目录，将 `RUN_TRAINING` 和 `RUN_CLINICAL` 设为 `True` 后从头运行。它恢复原结构、全主干训练和原学习率，同时沿用02的内部选轮数方式，结果独立保存到 `results/resnet_original`。021末尾会并排显示02和021的开发指标；更新后的06可以统一测试两组及其临床融合。无需重做四层缓存。
+
 ## 文件放在哪里
 
 ```text
 results/
   resnet/         model.pt、clinical_models.joblib、五折权重、开发集预测
+  resnet_original/ 021的原网络权重、临床融合、开发指标和逐轮训练记录
   ablation/       t1、t2、dwi、no_mask、no_attention 各自一个文件夹
   radiomics/      features.csv、models.joblib、开发集指标
   segmentation/  五折权重、validation_masks.npz、validation_dice.csv
@@ -45,7 +50,7 @@ results/
 
 ## 更新代码与依赖
 
-这次调整了文件名和保存格式，更新时把这 7 本 Notebook 放在同一个文件夹，用一个新的简单 `config.json` 指向已有缓存即可。旧版代码已移到项目旁的 `1117_旧文件_20261120`，原始数据未移动。
+更新时把这8本 Notebook 放在同一个文件夹，用一个新的简单 `config.json` 指向已有缓存即可。旧版代码已移到项目旁的 `1117_旧文件_20261120`，原始数据未移动。
 
 当前网络的权重格式与旧版不同，不能直接把旧 PT 文件改名使用。旧实验的测试预测可以作为 CSV 加入 06；需要哪些列，06 里有说明。新网络和新的 U-Net 需要各自训练。
 
