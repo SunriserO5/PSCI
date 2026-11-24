@@ -62,3 +62,37 @@ results/
 共同依赖：numpy、pandas、scipy、scikit-learn、matplotlib、joblib、Jupyter。00/01/05 读取原影像需要 nibabel；00 读取 Excel 需要 openpyxl。01 提取特征使用 MIRP 2.5.0（支持 Python 3.12）及其依赖 scikit-image；在 Notebook 中执行 `%pip install "mirp==2.5.0"` 后重启内核。强度和纹理由 MIRP 计算，二维形状由 scikit-image 计算；换库后需重新提取特征并训练01，06的文件路径保持不变。02～06 的神经网络部分需要配套的 PyTorch/torchvision。使用当前代码的 AMP 接口需要 PyTorch 2.3 或更新版本；scikit-learn 需支持 `keep_empty_features`（1.2 或更新），pandas 需支持混合日期解析（2.0 或更新）。异地读取 joblib 模型时，两端 scikit-learn 版本尽量一致。
 
 本次在本机仅检查源码和 Notebook 结构，没有安装依赖或执行数据处理、训练、测试集评估。
+
+## 筛查数据与准备重标
+
+`07_数据筛查.py` 是独立的复核脚本，直接读取原始NIfTI，不导入项目脚本、不训练模型、不改原始文件。沿用同级 `config.json`，在有完整数据的电脑上运行，CPU即可。依赖是现有的numpy、pandas、scipy、nibabel、matplotlib；核对Excel时还需要openpyxl。
+
+在脚本所在目录打开终端执行：
+
+```bash
+python 07_数据筛查.py
+```
+
+也可在同目录的Jupyter代码单元运行 `%run 07_数据筛查.py`。默认检查开发集，结果写到 `results/data_review/development`。双击其中的 `index.html` 看清单并打开每例图片，不需要启动网页服务。
+
+| 输出 | 用途 |
+| --- | --- |
+| `quality_screening.csv` | 按复核优先级排序，列出文件、网格、取层、标注及强度疑点和源文件位置 |
+| `figures/*_detail.png` | 上三行三序列原图，下三行标签1/2/3轮廓；不显示结局和预测 |
+| `figures/*_overview.png` | T1各层总览，标明实际选中的四层，帮助核对Excel起始层 |
+| `review_notes.csv` | 人工填写确认的问题、处理方式、复核者和备注；重复运行不会覆盖此文件 |
+| `model_review.csv` | 单独列出开发集预测与结局不一致程度，供影像复核后分析，不参与质量排序 |
+
+如果训练在算力机，只需把本次 `results/resnet/development_oof.csv` 和 `development_metrics.csv` 复制到数据电脑对应位置，就能生成模型疑难病例表。不需要复制权重；没有这两个结果文件，也可以做影像筛查。有OOF但没有指标文件时，仅列概率，不按默认阈值判断预测对错。
+
+P1表示文件、空间网格或来源问题应优先核对；P2是启发式疑点；P3仅作记录；P4表示未触发规则。空标注、≤3像素连通域和四层之外有标注都不能直接认定错误。空间矩阵相近也不能证明实际配准正确；模糊、漏标、边界及标签语义仍需人工看原图。标签编号没有被擅自解释为某种病变。
+
+默认输出全部开发患者的图片，包括未触发规则者。图像沿原始体素轴显示，不能直接当作标准放射学左右方向；空间网格不一致时不叠加标注。显示窗沿用四层1%～99.5%分位数。更多于32层时，T1总览采样显示并保留选定层及邻层。其他层没有轮廓不等于无病灶：本项目只要求选定四层完成标注。
+
+若只想先看清单，使用 `python 07_数据筛查.py --no-figures`。按同一套影像规则检查全部患者，可运行 `python 07_数据筛查.py --scope all`，输出位于 `results/data_review/all`；脚本始终不读取时间测试集的预测。模型预测错误不能作为更改MoCA、重画病灶或删除患者的依据，重标应依据原始影像和标注规则。不要根据测试表现决定修哪些病例。
+
+重标后保留原始标注备份及人工复核记录，再用00重建缓存。只改mask时保持 `UPDATE_COHORT=False`；确认Excel取层或源记录也需纠正时，先记录改动，再更新清单并核对患者分组。之后重新训练受影响的分类、影像组学或分割实验。脚本不会自动执行这些步骤。
+
+重复运行会更新自动清单、页面及同名图片，保留人工记录。如果队列成员或顺序改变，需按MR核对并补充人工记录。单例读取失败会写进清单并继续检查；只有根路径、配置、队列结构等整体问题会停止。完整数据未在本机，当前仅做了源码静态核查。
+
+实现参考：[NiBabel数组读取](https://nipy.org/nibabel/images_and_memory.html)、[体素坐标与空间矩阵](https://nipy.org/nibabel/coordinate_systems.html)、[数据泄漏与独立测试](https://scikit-learn.org/stable/common_pitfalls.html#data-leakage)。
