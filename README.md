@@ -1,6 +1,6 @@
 # PSCI 实验 Notebook
 
-日常使用 00～06，另有021原网络对照，共8本 Notebook 和一个 `config.json`。代码都在 Notebook 内，不需要项目 Python 脚本。训练参数写在各本前面的参数单元里；模型和结果直接保存为 PT、joblib、NPZ 和 CSV。
+日常使用 00～06，另有021原网络对照，共8本 Notebook 和一个 `config.json`。02 和 06 共用同目录 `clinical_association.py` 读取新增临床字段。训练参数写在各本前面的参数单元里，模型和结果保存为 PT、joblib、NPZ 和 CSV。
 
 | Notebook | 作用 | 建议运行位置 |
 | --- | --- | --- |
@@ -18,7 +18,7 @@
 1. 在 `config.json` 填写 Excel、患者目录、缓存和清单路径。相对路径以 Notebook 所在文件夹为起点；各电脑的数据路径可以不同。
 2. 本次分类保留原图尺寸。先在完整数据电脑运行00：`REBUILD_DATA=True`、`UPDATE_COHORT=False`，从原始NIfTI重建缓存，沿用已有患者和折号。原图是512×512，缓存就保存512×512；旧224缓存不能恢复丢失的细节。完成后确认打印的实际尺寸。
 3. 把新的 `resnet50_manual_cache.npz` 和配套的 `cohort.csv` 上传到算力机，路径仍使用现有 `config.json` 中的位置。云端只做分类不需要Excel和完整影像，也不用删除outputs目录。
-4. 用更新后的02从头训练。当前按A800设置每批16位患者，每折完整训练30轮后恢复留出AUC最高的权重，最终模型按五折最佳轮数中位数训练。`RUN_TRAINING`、`RUN_CLINICAL`、`RESTART` 已设为 `True`，会覆盖 `results/resnet` 中的同名结果。
+4. 02 默认复用 `results/resnet/development_oof.csv`，训练 Clinical5、Clinical7 和各自的融合模型。需要从头训练 ResNet 时设 `RUN_TRAINING=True`。影像训练每批16位患者，每折完整训练30轮后恢复留出AUC最高的权重，最终模型按五折最佳轮数中位数训练。启用影像训练时，`RESTART=True` 会覆盖同名影像训练输出。
 5. 训练完成后，使用更新后的04做解释；开发阶段方案确定后再用06进行时间测试。两本会按权重中的设置做输入标准化，不用另加一次处理。
 
 
@@ -38,13 +38,13 @@ results/
 
 01 在本地完成后，复制 `radiomics/features.csv` 和 `radiomics/models.joblib` 到算力机同名目录。05 在本地完成测试预测后，复制 `segmentation/validation_masks.npz` 和 `segmentation/validation_dice.csv`。06 直接读取这些文件，不检查电脑、版本编号或文件哈希。复制整个对应文件夹也可以。
 
-02本次直接覆盖原目录，`RESTART=True`。覆盖旧模型期间如果中断，保持这个设置重新运行，避免混入旧折结果。03默认复用已完成的折；05每轮保存，可从上一轮继续。02重训后需要重跑临床融合，当前运行开关已开启。
+02 的临床结果仍写在 `results/resnet`。启用影像重训时，若覆盖旧模型期间中断，保持 `RESTART=True` 重跑，避免混入旧折结果。03默认复用已完成的折。05每轮保存，可从上一轮继续。
 
 权重保存训练时的输入尺寸；06遇到旧224权重与新512缓存不匹配时会提示并跳过。05导出的自动mask也改为读取分类缓存尺寸：如果已有U-Net权重，只需使用新缓存重新运行测试预测、导出 `validation_masks.npz`，无需因分类尺寸变化重训分割模型。
 
 ## 数据与模型说明
 
-- MoCA ≤22 定义结局，MoCA 不进入模型输入。临床输入固定为五项，缺失值在训练折内填补。
+- MoCA ≤22 定义结局，缺失特征在训练折内填补。Clinical5 保留原五项，Clinical7 增加 Fazekas 评分和糖尿病。Fazekas 是结构化 MRI 评分。
 - 沿用时间分组；全部患者只有选定四层有标注。分割和影像组学只使用这四层。
 - 分类缓存保留各序列四层的1%～99.5%分位归一化，保存0～1影像和0/1标签，不做空间缩放。患者矩阵尺寸不一致时00会指出具体患者，便于核对。
 - 02在数据增强后、ResNet入口处加入ImageNet均值/标准差处理，仅作用于影像。ResNet主干和BatchNorm仍固定，病灶分支和分类部分继续训练。是否使用标准化随现有PT权重保存，不新增JSON。
@@ -62,6 +62,31 @@ results/
 共同依赖：numpy、pandas、scipy、scikit-learn、matplotlib、joblib、Jupyter。00/01/05 读取原影像需要 nibabel；00 读取 Excel 需要 openpyxl。01 提取特征使用 MIRP 2.5.0（支持 Python 3.12）及其依赖 scikit-image；在 Notebook 中执行 `%pip install "mirp==2.5.0"` 后重启内核。强度和纹理由 MIRP 计算，二维形状由 scikit-image 计算；换库后需重新提取特征并训练01，06的文件路径保持不变。02～06 的神经网络部分需要配套的 PyTorch/torchvision。使用当前代码的 AMP 接口需要 PyTorch 2.3 或更新版本；scikit-learn 需支持 `keep_empty_features`（1.2 或更新），pandas 需支持混合日期解析（2.0 或更新）。异地读取 joblib 模型时，两端 scikit-learn 版本尽量一致。
 
 本次在本机仅检查源码和 Notebook 结构，没有安装依赖或执行数据处理、训练、测试集评估。
+
+## Clinical7 与论文关联分析
+
+02 默认使用保存在 `results/resnet/development_oof.csv` 的影像折外概率。02 和 06 从清单读取 `fazekas`、`diabetes`；旧清单缺列时，从配置指定的 Excel 按 MR 匹配。Excel 的默认表头为 `Fazekas` 和 `糖尿病`，可在 `config.json` 的 `columns` 中用 `fazekas` 和 `diabetes` 覆盖。Fazekas 按 0～3 级编码，糖尿病编码为有=1、无=0，保留原有缺失。
+
+在含有患者清单的环境运行以下命令。脚本只对清单标记为 `development` 的患者做统计，使用 `pandas`、`numpy`、`scipy` 和 `statsmodels` 0.14 或以上版本，旧清单查 Excel 时还需要 `openpyxl`。
+
+```bash
+python clinical_association.py
+```
+
+如果算力机只接收清单和缓存，可以从有 Excel 的环境另存一份补齐新增字段的清单。将新清单和原缓存放在算力机，并将 `config.json` 中的 `cohort_path` 指向新清单。
+
+```bash
+python clinical_association.py --export-cohort outputs/cohort_clinical7.csv
+```
+
+| `results/clinical_association/` 下的结果 | 论文可报告内容 |
+| --- | --- |
+| `univariate_moca.csv` | 各变量非缺失人数、缺失数、与表中 MoCA 总分的关联。连续和有序变量用 Spearman ρ，糖尿病用 Mann–Whitney U 和秩二列相关。提供双侧 P 值和 Benjamini–Hochberg 校正 P 值。 |
+| `adjusted_odds_ratios.csv` | 以 MoCA ≤22 为结局，在七项均非缺失的患者中同时纳入七个变量，报告各变量的调整 OR、95% CI、效应单位和完整病例数。 |
+
+论文可说明，Clinical7 扩展自既有 Clinical5。年龄、教育年限和 NIHSS 分别反映人口学差异、认知储备及卒中严重程度。同型半胱氨酸和尿酸是既有基线中的生化指标，已有卒中队列研究考察其与认知的关系。Fazekas 反映白质高信号负担，糖尿病代表代谢合并症，两项均有卒中后认知障碍的文献依据，并在本项目开发阶段作为候选进行了探索。报告七项的关联估计和缺失情况，同时用 02 的同队列、同折对照及 06 的时间验证衡量 Clinical7 的预测增量。关联 P 值用于描述证据强度，变量组合来自基线延续、临床依据和开发阶段探索。
+
+参考文献：[AHA/ASA 科学声明](https://doi.org/10.1161/STR.0000000000000430)、[白质高信号及糖尿病的荟萃分析](https://pubmed.ncbi.nlm.nih.gov/38101426/)、[同型半胱氨酸队列研究](https://pubmed.ncbi.nlm.nih.gov/34277686/)、[尿酸队列研究](https://pubmed.ncbi.nlm.nih.gov/32485287/)。
 
 ## 筛查数据与准备重标
 
